@@ -42,10 +42,10 @@ public class Process extends UntypedAbstractActor {
             s = new coupleState();
     }
 
-    private propose(v) {
+    private Decision propose(v) {
         proposal = v;
         ballot += N;
-        for (s : states) {
+        for (coupleState s : states) {
             s.est = -1;
             s.estBallot = 0;
         }
