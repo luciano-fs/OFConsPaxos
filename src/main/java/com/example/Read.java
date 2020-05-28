@@ -1,5 +1,6 @@
 package com.example;
 
 class Read {
-    public Read() {}
+    int ballot;
+    public Read(int ballot) {this.ballot = ballot;}
 }

@@ -16,13 +16,16 @@ public class Process extends UntypedAbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);// Logger attached to actor
     private final int N;//number of processes
     private final int id;//id of current process
+    private final float crashProb = 0.2;//probability of crashing
     private int ballot;
     private int proposal;
     private int readBallot;
     private int imposeBallot;
     private int estimate;
-    private int coupleState states[];
-    private int Members processes;//other processes' references
+    private coupleState states[];
+    private Members processes;//other processes' references
+    private boolean faultProne;//if true, the process may die
+    private boolean dead;//process has died
 
     public Process(int ID, int nb) {
         N = nb;
@@ -33,6 +36,8 @@ public class Process extends UntypedAbstractActor {
         imposeBallot = id - N;
         estimate = -1;
         states = new coupleState[N];
+        faultProne = false;
+        dead = false;
         for (s : states)
             s = new coupleState();
     }
@@ -64,6 +69,15 @@ public class Process extends UntypedAbstractActor {
     }
     
     public void onReceive(Object message) throws Throwable {
+	
+	  if (faultProne) {
+              if (Math.random() < crashProb) {
+		  log.info("p" + self().path().name() + " has died!!!!");
+		  dead = true;
+	      }
+	  }
+
+	  if (dead) return;
     	
           if (message instanceof Members) {//save the system's info
               Members m = (Members) message;
@@ -81,7 +95,20 @@ public class Process extends UntypedAbstractActor {
               if (readBallot >= r.ballot || imposeBallot >= r.ballot) 
 
           }
-      
+	  if (message instanceof CrashMsg) {
+	      log.info("p" + self().path().name() + " received CrashMsg");
+	      faultProne = true;
+	  }
+	  if (message instanceof LaunchMsg) {
+	      log.info("p" + self().path().name() + " received LauchMsg");
+              if (Math.random() < 0.5) {
+		  propose(0);
+	      }
+	      else {
+		  propose(1);
+	      }
+	  }
+	  
     }
 }
 
