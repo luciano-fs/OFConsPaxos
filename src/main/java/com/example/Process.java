@@ -27,6 +27,7 @@ public class Process extends UntypedAbstractActor {
     private boolean faultProne;//if true, the process may die
     private boolean dead;//process has died
     private boolean hold;
+    private HashMap<Integer, Integer> ackCounter;
 
     public Process(int id, int N) {
         this.N = N;
@@ -41,7 +42,8 @@ public class Process extends UntypedAbstractActor {
         dead = false;
         for (s : states)
             s = new coupleState();
-	hold = false;
+        hold = false;
+        ackCounter = new HashMap<Integer, Integer>();
     }
 
     private Decision propose(int v) {
@@ -149,6 +151,14 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof Ack) {
               Ack a = (Ack) message;
+              Integer cnt = ackCounter.get(a.ballot);
+              if (cnt == null)
+                  ackCounter.put(a.ballot, 1);
+              else
+                  ackCounter.put(a.ballot, cnt + 1);
+              if (cnt + 1 > N/2)
+                  for (ActorRef p : processes.references)
+                      p.tell(new Decide(proposal), getSelf());
           }
           if (message instanceof Decide) {
               Decide d = (Decide) message;
