@@ -28,8 +28,6 @@ public class Process extends UntypedAbstractActor {
     public Process(int ID, int nb) {
         N = nb;
         id = ID;
-<<<<<<< HEAD
-=======
         ballot = id - N;
         proposal = -1;
         readBallot = 0;
@@ -37,7 +35,6 @@ public class Process extends UntypedAbstractActor {
         estimate = -1;
         states = new coupleState[N];
 	faultProne = false;
->>>>>>> d04d6f26caf7135ab6645fc5ecb803be29cb33b4
     }
     
     public String toString() {
