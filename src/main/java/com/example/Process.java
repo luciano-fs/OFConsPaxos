@@ -42,7 +42,7 @@ public class Process extends UntypedAbstractActor {
             s = new coupleState();
     }
 
-    private Decision propose(v) {
+    private Decision propose(int v) {
         proposal = v;
         ballot += N;
         for (coupleState s : states) {
@@ -56,8 +56,6 @@ public class Process extends UntypedAbstractActor {
     public String toString() {
         return "Process{" + "id=" + id ;
     }
-
-    private 
 
     /**
      * Static function creating actor
@@ -100,7 +98,7 @@ public class Process extends UntypedAbstractActor {
               }
           }
           if (message instanceof Abort) {
-
+              //TODO return
           }
           if (message instanceof Gather) {
               ActorRef sender = getSender();
@@ -124,6 +122,27 @@ public class Process extends UntypedAbstractActor {
                       p.tell(new Impose(ballot, proposal), getSelf());
               }
           }
+          if (message instanceof Impose) {
+              ActorRef sender = getSender();
+              Impose i = (Impose) message;
+              if (readBallot > i.ballot || imposeBallot > i.ballot)
+                  sender.tell(new Abort(i.ballot), getSelf());
+              else {
+                  estimate = i.proposal;
+                  imposeBallot = i.ballot;
+                  sender.tell(new Ack(i.ballot), getSelf());
+              }
+          }
+          if (message instanceof Ack) {
+              Ack a = (Ack) message;
+          }
+          if (message instanceof Decide) {
+              Decide d = (Decide) message;
+              for (ActorRef p : processes.references)
+                  p.tell(new Decide(d.value), getSelf());
+              //TODO return
+          }
+
 
           if (message instanceof CrashMsg) {
               log.info("p" + self().path().name() + " received CrashMsg");
