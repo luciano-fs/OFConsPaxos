@@ -4,8 +4,9 @@ import akka.actor.ActorSystem;
 import java.util.*;
 import java.util.stream.Stream;
 
-
 public class Main {
+
+    public static final int f = 2;
 
     public static int N = 10;
 
@@ -30,6 +31,17 @@ public class Main {
             actor.tell(m, ActorRef.noSender());
         }
 
-        references.get(0).tell(new OfconsProposerMsg(), ActorRef.noSender());
+	CrashMsg crash = new CrashMsg();
+	
+        Collections.shuffle(references);
+	for(int i = 0; i < f; i++) {
+	    references.get(i).tell(crash, ActorRef.noSender());
+	}
+
+	LaunchMsg launch = new LaunchMsg();
+
+	for(ActorRef actor : references) {
+	    actor.tell(launch, ActorRef.noSender());
+	}
     }
 }
