@@ -70,14 +70,14 @@ public class Process extends UntypedAbstractActor {
     
     public void onReceive(Object message) throws Throwable {
 	
-	  if (faultProne) {
+          if (faultProne) {
               if (Math.random() < crashProb) {
+                  dead = true;
 		  log.info("p" + self().path().name() + " has died!!!!");
-		  dead = true;
-	      }
-	  }
+              }
+          }
 
-	  if (dead) return;
+          if (dead) return;
     	
           if (message instanceof Members) {//save the system's info
               Members m = (Members) message;
@@ -90,10 +90,14 @@ public class Process extends UntypedAbstractActor {
                   p.tell(new Read(), getSelf());
           }
           if (message instanceof Read) {//Broadcast read
-              ActorRef 
+              ActorRef sender = getSender();
               Read r = (Read) message;
               if (readBallot >= r.ballot || imposeBallot >= r.ballot) 
-
+                  sender.tell(new Abort(ballot), getSelf());
+              else {
+                  readBallot = r.ballot;
+                  sender.tell(new Gather(ballot, imposeBallot, estimate), getSelf());
+              }
           }
 	  if (message instanceof CrashMsg) {
 	      log.info("p" + self().path().name() + " received CrashMsg");
@@ -108,7 +112,6 @@ public class Process extends UntypedAbstractActor {
 		  propose(1);
 	      }
 	  }
-	  
     }
 }
 
