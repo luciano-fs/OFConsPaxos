@@ -28,6 +28,7 @@ public class Process extends UntypedAbstractActor {
     private boolean dead;//process has died
     private boolean hold;
     private HashMap<Integer, Integer> ackCounter;
+    private int value;
 
     public Process(int id, int N) {
         this.N = N;
@@ -46,7 +47,7 @@ public class Process extends UntypedAbstractActor {
         ackCounter = new HashMap<Integer, Integer>();
     }
 
-    private Decision propose(int v) {
+    private void propose(int v) {
         proposal = v;
         ballot += N;
         for (coupleState s : states) {
@@ -62,14 +63,13 @@ public class Process extends UntypedAbstractActor {
     }
 
     private keepProposing() {
-	Decision d = new Decision(false, 0);
 	if (Math.random() < 0.5) {
-	    while(!d.result && !hold)
-		d = propose(0);
+	    value = 0;
+	    propose(value);
 	}
 	else {
-	    while(!d.result && !hold)
-		d = propose(1);
+            value = 1;
+	    propose(value);
 	}
     }
 
