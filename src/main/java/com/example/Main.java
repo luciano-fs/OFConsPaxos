@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 public class Main {
 
     public static final int f = 2;
+    public static final long timeout = 300000;
 
     public static int N = 10;
 
@@ -19,9 +20,9 @@ public class Main {
 
         ArrayList<ActorRef> references = new ArrayList<>();
 
-        for (int i = 0; i < N; i++) {
+        for (int i = 1; i < N; i++) {
             // Instantiate processes
-            final ActorRef a = system.actorOf(Process.createActor(i + 1, N), "" + i);
+            final ActorRef a = system.actorOf(Process.createActor(i, N), "" + i);
             references.add(a);
         }
 
@@ -42,6 +43,17 @@ public class Main {
 
 	for (ActorRef actor : references) {
 	    actor.tell(launch, ActorRef.noSender());
+	}
+
+	Thread.sleep(timeout);
+	
+        int leaderNumber = ThreadLocalRandom.current().nextInt(f, references.size());
+	ActorRef leader = references.get(leaderNumber);
+	HoldMsg hold = new HoldMsg();
+        for (ActorRef actor : references) {
+	    if (actor != leader) {
+		actor.tell(hold, ActorRef.noSender());
+	    }
 	}
     }
 }

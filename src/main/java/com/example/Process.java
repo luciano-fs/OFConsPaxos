@@ -26,6 +26,7 @@ public class Process extends UntypedAbstractActor {
     private Members processes;//other processes' references
     private boolean faultProne;//if true, the process may die
     private boolean dead;//process has died
+    private boolean hold;
 
     public Process(int id, int N) {
         this.N = N;
@@ -40,6 +41,7 @@ public class Process extends UntypedAbstractActor {
         dead = false;
         for (s : states)
             s = new coupleState();
+	hold = false;
     }
 
     private Decision propose(v) {
@@ -57,7 +59,18 @@ public class Process extends UntypedAbstractActor {
         return "Process{" + "id=" + id ;
     }
 
-    private 
+    private
+    private keepProposing() {
+	Decision d = new Decision(false, 0);
+	if (Math.random() < 0.5) {
+	    while(!d.result && !hold)
+		d = propose(0);
+	}
+	else {
+	    while(!d.result && !hold)
+		d = propose(1);
+	}
+    }
 
     /**
      * Static function creating actor
@@ -111,16 +124,11 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof LaunchMsg) {
               log.info("p" + self().path().name() + " received LauchMsg");
-	      Decision d = new Decision(false, 0);
-              if (Math.random() < 0.5) {
-		  while(!d.result)
-		      d = propose(0);
-              }
-              else {
-		  while(!d.result)
-		      d = propose(1);
-              }
+	      keepProposing();
           }
+	  if (message instanceof HoldMsg) {
+	      hold = true;
+	  }
     }
 }
 
