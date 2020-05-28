@@ -27,9 +27,9 @@ public class Process extends UntypedAbstractActor {
     private boolean faultProne;//if true, the process may die
     private boolean dead;//process has died
 
-    public Process(int ID, int nb) {
-        N = nb;
-        id = ID;
+    public Process(int id, int N) {
+        this.N = N;
+        this.id = id;
         ballot = id - N;
         proposal = -1;
         readBallot = 0;
@@ -111,11 +111,14 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof LaunchMsg) {
               log.info("p" + self().path().name() + " received LauchMsg");
+	      Decision d = new Decision(false, 0);
               if (Math.random() < 0.5) {
-                  propose(0);
+		  while(!d.result)
+		      d = propose(0);
               }
               else {
-                  propose(1);
+		  while(!d.result)
+		      d = propose(1);
               }
           }
     }
