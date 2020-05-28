@@ -17,10 +17,12 @@ public class Process extends UntypedAbstractActor {
     private final int N;//number of processes
     private final int id;//id of current process
     private Members processes;//other processes' references
+    private boolean faultProne;
 
     public Process(int ID, int nb) {
         N = nb;
         id = ID;
+	faultProne = false;
     }
     
     public String toString() {
@@ -51,6 +53,9 @@ public class Process extends UntypedAbstractActor {
           if (message instanceof Read) {//Broadcast read
               log.info("p" + self().path().name() + " received Read from p" + getSender().path().name());
           }
-      
+	  if (message instanceof CrashMsg) {
+	      faultProne = true;
+	  }
+	  
     }
 }
