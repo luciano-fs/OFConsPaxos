@@ -34,13 +34,13 @@ public class Main {
 	CrashMsg crash = new CrashMsg();
 	
         Collections.shuffle(references);
-	for(int i = 0; i < f; i++) {
+	for (int i = 0; i < f; i++) {
 	    references.get(i).tell(crash, ActorRef.noSender());
 	}
 
 	LaunchMsg launch = new LaunchMsg();
 
-	for(ActorRef actor : references) {
+	for (ActorRef actor : references) {
 	    actor.tell(launch, ActorRef.noSender());
 	}
     }
