@@ -16,6 +16,7 @@ public class Process extends UntypedAbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);// Logger attached to actor
     private final int N;//number of processes
     private final int id;//id of current process
+    private final float crashProb = 0.2;
     private int ballot;
     private int proposal;
     private int readBallot;
@@ -24,6 +25,7 @@ public class Process extends UntypedAbstractActor {
     private coupleState states[];
     private Members processes;//other processes' references
     private boolean faultProne;
+    private boolean dead;
 
     public Process(int ID, int nb) {
         N = nb;
@@ -35,6 +37,7 @@ public class Process extends UntypedAbstractActor {
         estimate = -1;
         states = new coupleState[N];
 	faultProne = false;
+	dead = false;
     }
     
     public String toString() {
@@ -53,6 +56,13 @@ public class Process extends UntypedAbstractActor {
     }
     
     public void onReceive(Object message) throws Throwable {
+	  if (faultProne) {
+              if (Math.random() < crashProb) {
+		  dead = true;
+	      }
+	  }
+
+	  if (dead) return;
     	
           if (message instanceof Members) {//save the system's info
               Members m = (Members) message;
