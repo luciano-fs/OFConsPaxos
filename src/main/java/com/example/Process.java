@@ -31,7 +31,7 @@ public class Process extends UntypedAbstractActor {
         N = nb;
         id = ID;
         ballot = id - N;
-        proposal = -1;
+        proposal = -1; //NIL is represented by -1
         readBallot = 0;
         imposeBallot = id - N;
         estimate = -1;
@@ -73,7 +73,7 @@ public class Process extends UntypedAbstractActor {
           if (faultProne) {
               if (Math.random() < crashProb) {
                   dead = true;
-		  log.info("p" + self().path().name() + " has died!!!!");
+                  log.info("p" + self().path().name() + " has died!!!!");
               }
           }
 
@@ -103,7 +103,27 @@ public class Process extends UntypedAbstractActor {
 
           }
           if (message instanceof Gather) {
-              ActorRef sender = 
+              ActorRef sender = getSender();
+              Gather g = (Gather) message;
+              int senderID = Integer.parseInt(sender.path().name());
+              states[senderID-1] = new coupleState(g.est, g.estBallot);
+              int nbStates = 0;
+              coupleState highest = new coupleState();
+              for (coupleState s : states) {
+                  if (s.est != -1)
+                      nbStates ++;
+                  if (s.estBallot > highest.estBallot)
+                      highest = s;
+              }
+              if (nbStates > N/2) {
+                  if (highest.estBallot > 0)
+                      proposal = highest.est;
+                  for (coupleState s : states)
+                      s = new coupleState();
+                  for (ActorRef p : processes.references)
+                      p.tell(new Impose(ballot, proposal), getSelf());
+              }
+          }
 
           if (message instanceof CrashMsg) {
               log.info("p" + self().path().name() + " received CrashMsg");
@@ -125,6 +145,11 @@ private class coupleState {
     public int est;
     public int estBallot;
     public completeState() {
-        est = -1; //NIL is represented by -1
+        est = -1; 
         estBallot = 0;
+    }
+    public completeState(int est, int estBallot) {
+        this.est = est; 
+        this.estBallot = estBallot;
+    }
 }
