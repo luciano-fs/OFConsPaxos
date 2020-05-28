@@ -21,8 +21,8 @@ public class Process extends UntypedAbstractActor {
     private int readBallot;
     private int imposeBallot;
     private int estimate;
-    private coupleState states[];
-    private Members processes;//other processes' references
+    private int coupleState states[];
+    private int Members processes;//other processes' references
 
     public Process(int ID, int nb) {
         N = nb;
@@ -33,6 +33,19 @@ public class Process extends UntypedAbstractActor {
         imposeBallot = id - N;
         estimate = -1;
         states = new coupleState[N];
+        for (s : states)
+            s = new coupleState();
+    }
+
+    private propose(v) {
+        proposal = v;
+        ballot += N;
+        for (s : states) {
+            s.est = -1;
+            s.estBallot = 0;
+        }
+        for (ActorRef p : processes.references)
+            p.tell(new Read(ballot), getSelf());
     }
     
     public String toString() {
@@ -63,15 +76,18 @@ public class Process extends UntypedAbstractActor {
                   p.tell(new Read(), getSelf());
           }
           if (message instanceof Read) {//Broadcast read
-              log.info("p" + self().path().name() + " received Read from p" + getSender().path().name());
+              ActorRef 
+              Read r = (Read) message;
+              if (readBallot >= r.ballot || imposeBallot >= r.ballot) 
+
           }
       
     }
 }
 
 private class coupleState {
-    public est;
-    public estBallot;
+    public int est;
+    public int estBallot;
     public completeState() {
         est = -1; //NIL is represented by -1
         estBallot = 0;
