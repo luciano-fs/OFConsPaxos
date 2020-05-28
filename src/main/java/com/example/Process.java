@@ -16,18 +16,35 @@ public class Process extends UntypedAbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);// Logger attached to actor
     private final int N;//number of processes
     private final int id;//id of current process
+    private int ballot;
+    private int proposal;
+    private int readBallot;
+    private int imposeBallot;
+    private int estimate;
+    private coupleState states[];
     private Members processes;//other processes' references
     private boolean faultProne;
 
     public Process(int ID, int nb) {
         N = nb;
         id = ID;
+<<<<<<< HEAD
+=======
+        ballot = id - N;
+        proposal = -1;
+        readBallot = 0;
+        imposeBallot = id - N;
+        estimate = -1;
+        states = new coupleState[N];
 	faultProne = false;
+>>>>>>> d04d6f26caf7135ab6645fc5ecb803be29cb33b4
     }
     
     public String toString() {
         return "Process{" + "id=" + id ;
     }
+
+    private 
 
     /**
      * Static function creating actor
@@ -58,4 +75,12 @@ public class Process extends UntypedAbstractActor {
 	  }
 	  
     }
+}
+
+private class coupleState {
+    public est;
+    public estBallot;
+    public completeState() {
+        est = -1; //NIL is represented by -1
+        estBallot = 0;
 }
