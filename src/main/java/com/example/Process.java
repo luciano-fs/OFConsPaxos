@@ -76,6 +76,10 @@ public class Process extends UntypedAbstractActor {
           }
 
           if (dead) return;
+
+          if (message instanceof CrashMsg) {
+              faultProne = true;
+          }
     	
           if (message instanceof Members) {//save the system's info
               Members m = (Members) message;
@@ -97,9 +101,12 @@ public class Process extends UntypedAbstractActor {
                   sender.tell(new Gather(ballot, imposeBallot, estimate), getSelf());
               }
           }
-          if (message instanceof CrashMsg) {
-              faultProne = true;
+          if (message instanceof Abort) {
+
           }
+          if (message instanceof Gather) {
+              ActorRef sender = 
+
     }
 }
 
