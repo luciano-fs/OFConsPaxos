@@ -1,4 +1,5 @@
 package com.example;
+import akka.actor.Actor.*;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import java.util.*;
@@ -14,17 +15,20 @@ public class Main {
 
 
     public static void main(String[] args) throws InterruptedException {
-
+	
         // Instantiate an actor system
         final ActorSystem system = ActorSystem.create("system");
         system.log().info("System started with N=" + N );
 
-        ArrayList<ActorRef> references = new ArrayList<>();
+        ArrayList<ActorRef> references = new ArrayList<ActorRef>();
+	ArrayList<IsRunning> status = new ArrayList<IsRunning>();
 
-        for (int i = 1; i < N; i++) {
+        for (int i = 1; i <= N; i++) {
+	    IsRunning s = new IsRunning();
             // Instantiate processes
-            final ActorRef a = system.actorOf(Process.createActor(i, N).withDispatcher("prio-dispatcher"), "" + i);
+            final ActorRef a = system.actorOf(Process.createActor(i, N, s).withDispatcher("prio-dispatcher"), "" + i);
             references.add(a);
+	    status.add(s);
         }
 
         //give each process a view of all the other processes
@@ -58,7 +62,11 @@ public class Main {
                 actor.tell(hold, ActorRef.noSender());
             }
         }
-        
+	
+	for (int i = 0; i < N; i++) {
+	    while(status.get(i).get()) Thread.sleep(500);
+	}
 
+	system.terminate();
     }
 }

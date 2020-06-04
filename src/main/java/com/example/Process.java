@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Process extends UntypedAbstractActor {
+    public IsRunning alive;
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);// Logger attached to actor
     private final int N;//number of processes
     private final int id;//id of current process
@@ -30,7 +31,7 @@ public class Process extends UntypedAbstractActor {
     private HashMap<Integer, Integer> readCounter;
     private int value;
 
-    public Process(int id, int N) {
+    public Process(int id, int N, IsRunning alive) {
         this.N = N;
         this.id = id;
         ballot = id - N;
@@ -45,6 +46,7 @@ public class Process extends UntypedAbstractActor {
         hold = false;
         ackCounter = new HashMap<Integer, Integer>();
         readCounter = new HashMap<Integer, Integer>();
+	this.alive = alive;
     }
 
     private void propose(int v) {
@@ -79,9 +81,9 @@ public class Process extends UntypedAbstractActor {
     /**
      * Static function creating actor
      */
-    public static Props createActor(int ID, int nb) {
+    public static Props createActor(int ID, int nb, IsRunning alive) {
         return Props.create(Process.class, () -> {
-            return new Process(ID, nb);
+		return new Process(ID, nb, alive);
         });
     }
     
@@ -90,6 +92,7 @@ public class Process extends UntypedAbstractActor {
           if (faultProne) {
               if (Math.random() < crashProb) {
                   log.info(toString() + " has died!!!!");
+		  alive.set(false);
                   getContext().stop(getSelf());
                   return;
               }
@@ -174,6 +177,7 @@ public class Process extends UntypedAbstractActor {
               for (ActorRef p : processes.references)
                   p.tell(new Decide(d.value), getSelf()); // Send decide to all
               log.info(toString() + " decided " + Integer.toString(d.value));
+              alive.set(false);
               getContext().stop(getSelf());
           }
 
