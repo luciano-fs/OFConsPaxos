@@ -39,8 +39,8 @@ public class Process extends UntypedAbstractActor {
         imposeBallot = id - N;
         estimate = -1;
         states = new CoupleState[N];
-        for (CoupleState s : states)
-            s = new CoupleState();
+        for (int i = 0; i < N; i++)
+            states[i] = new CoupleState();
         faultProne = false;
         dead = false;
         hold = false;
@@ -110,7 +110,7 @@ public class Process extends UntypedAbstractActor {
           if (message instanceof Read) {//Broadcast read
               ActorRef sender = getSender();
               Read r = (Read) message;
-              log.info(toString() + " received Read from " + sender.path().name() + " with ballot " + Integer.toString(r.ballot));
+              log.info(toString() + " received Read from Process " + sender.path().name() + " with ballot " + Integer.toString(r.ballot));
               if (readBallot >= r.ballot || imposeBallot >= r.ballot) 
                   sender.tell(new Abort(r.ballot), getSelf());
               else {
@@ -119,13 +119,14 @@ public class Process extends UntypedAbstractActor {
               }
           }
           if (message instanceof Abort) {
-              log.info(toString() + " received Abort from " + getSender());
+	      ActorRef sender = getSender();
+              log.info(toString() + " received Abort from Process " + sender.path().name());
               propose(value); //Return abort
           }
           if (message instanceof Gather) {
               ActorRef sender = getSender();
               Gather g = (Gather) message;
-              log.info(toString() + " received Gather from " + sender.path().name() + " with ballot " + Integer.toString(g.ballot));
+              log.info(toString() + " received Gather from Process " + sender.path().name() + " with ballot " + Integer.toString(g.ballot));
               int senderID = Integer.parseInt(sender.path().name());
               states[senderID-1] = new CoupleState(g.est, g.estBallot);
               int nbStates = 0;
@@ -136,6 +137,8 @@ public class Process extends UntypedAbstractActor {
                   if (s.estBallot > highest.estBallot)
                       highest = s;
               }
+
+	      log.info(toString() + " received Gather from " + Integer.toString(nbStates) + " processes" );
               if (nbStates > N/2) {
                   if (highest.estBallot > 0)
                       proposal = highest.est;
@@ -148,7 +151,7 @@ public class Process extends UntypedAbstractActor {
           if (message instanceof Impose) {
               ActorRef sender = getSender();
               Impose i = (Impose) message;
-              log.info(toString() + " received Impose from " + sender.path().name() + " with ballot " + Integer.toString(i.ballot) + " and proposal " + Integer.toString(i.proposal));
+              log.info(toString() + " received Impose from Process " + sender.path().name() + " with ballot " + Integer.toString(i.ballot) + " and proposal " + Integer.toString(i.proposal));
               if (readBallot > i.ballot || imposeBallot > i.ballot)
                   sender.tell(new Abort(i.ballot), getSelf()); // Send abort to pj
               else {
@@ -185,6 +188,7 @@ public class Process extends UntypedAbstractActor {
 	      firstProposal();
           }
 	  if (message instanceof HoldMsg) {
+	      log.info(toString() + " received HoldMsg");
 	      hold = true;
 	  }
     }

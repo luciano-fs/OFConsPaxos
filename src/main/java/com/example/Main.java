@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Main {
 
     public static final int f = 2;
-    public static final long timeout = 300000;
+    public static final long timeout = 10000;
 
     public static int N = 10;
 
