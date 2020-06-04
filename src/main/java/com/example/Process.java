@@ -27,6 +27,7 @@ public class Process extends UntypedAbstractActor {
     private boolean faultProne;//if true, the process may die
     private boolean dead;//process has died
     private boolean hold;
+    private boolean done;
     private HashMap<Integer, Integer> ackCounter;
     private HashMap<Integer, Integer> readCounter;
     private int value;
@@ -45,6 +46,7 @@ public class Process extends UntypedAbstractActor {
         faultProne = false;
         dead = false;
         hold = false;
+        done = false;
         ackCounter = new HashMap<Integer, Integer>();
         readCounter = new HashMap<Integer, Integer>();
     }
@@ -88,7 +90,7 @@ public class Process extends UntypedAbstractActor {
     
     public void onReceive(Object message) throws Throwable {
 	
-          if (dead) return;
+          if (dead || done) return;
 
           if (faultProne) {
               if (Math.random() < crashProb) {
@@ -98,17 +100,12 @@ public class Process extends UntypedAbstractActor {
               }
           }
 
-
           if (message instanceof Members) {//save the system's info
               Members m = (Members) message;
               processes = m;
               log.info(toString() + " received processes info");
           }
-          if (message instanceof OfconsProposerMsg) {//Broadcast read
-              log.info(toString() + " received OfConsMSG");
-              for (ActorRef p : processes.references)
-                  p.tell(new Read(ballot), getSelf()); // Send READ to all
-          }
+
           if (message instanceof Read) {//Broadcast read
               ActorRef sender = getSender();
               Read r = (Read) message;
@@ -180,6 +177,7 @@ public class Process extends UntypedAbstractActor {
               for (ActorRef p : processes.references)
                   p.tell(new Decide(d.value), getSelf()); // Send decide to all
               log.info(toString() + " decided " + Integer.toString(d.value));
+              done = true;
           }
 
           if (message instanceof CrashMsg) {

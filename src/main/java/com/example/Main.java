@@ -23,7 +23,7 @@ public class Main {
 
         for (int i = 1; i < N; i++) {
             // Instantiate processes
-            final ActorRef a = system.actorOf(Process.createActor(i, N), "" + i);
+            final ActorRef a = system.actorOf(Process.createActor(i, N).withDispatcher("prio-dispatcher"), "" + i);
             references.add(a);
         }
 

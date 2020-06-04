@@ -1,3 +1,4 @@
+com/example/PriorityMailBox.class
 com/example/HoldMsg.class
 com/example/Process.class
 com/example/CrashMsg.class
@@ -11,4 +12,5 @@ com/example/Read.class
 com/example/LaunchMsg.class
 com/example/OfconsProposerMsg.class
 com/example/Main.class
+com/example/PriorityMailBox$1.class
 com/example/Gather.class
