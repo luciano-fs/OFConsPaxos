@@ -25,9 +25,7 @@ public class Process extends UntypedAbstractActor {
     private CoupleState states[];
     private Members processes;//other processes' references
     private boolean faultProne;//if true, the process may die
-    private boolean dead;//process has died
     private boolean hold;
-    private boolean done;
     private HashMap<Integer, Integer> ackCounter;
     private HashMap<Integer, Integer> readCounter;
     private int value;
@@ -44,9 +42,7 @@ public class Process extends UntypedAbstractActor {
         for (int i = 0; i < N; i++)
             states[i] = new CoupleState();
         faultProne = false;
-        dead = false;
         hold = false;
-        done = false;
         ackCounter = new HashMap<Integer, Integer>();
         readCounter = new HashMap<Integer, Integer>();
     }
@@ -65,7 +61,7 @@ public class Process extends UntypedAbstractActor {
     }
     
     public String toString() {
-        return "Process{" + "id=" + id ;
+        return "p" + id ;
     }
 
     private void firstProposal() {
@@ -90,12 +86,10 @@ public class Process extends UntypedAbstractActor {
     
     public void onReceive(Object message) throws Throwable {
 	
-          if (dead || done) return;
-
           if (faultProne) {
               if (Math.random() < crashProb) {
-                  dead = true;
                   log.info(toString() + " has died!!!!");
+                  getContext().stop(getSelf());
                   return;
               }
           }
@@ -109,7 +103,7 @@ public class Process extends UntypedAbstractActor {
           if (message instanceof Read) {//Broadcast read
               ActorRef sender = getSender();
               Read r = (Read) message;
-              log.info(toString() + " received Read from Process " + sender.path().name() + " with ballot " + Integer.toString(r.ballot));
+              log.info(toString() + " received Read from p" + sender.path().name() + " with ballot " + Integer.toString(r.ballot));
               if (readBallot >= r.ballot || imposeBallot >= r.ballot) 
                   sender.tell(new Abort(r.ballot), getSelf());
               else {
@@ -119,13 +113,12 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof Abort) {
 	      ActorRef sender = getSender();
-              log.info(toString() + " received Abort from Process " + sender.path().name());
+              log.info(toString() + " received Abort from p" + sender.path().name());
               propose(value); //Return abort
           }
           if (message instanceof Gather) {
               ActorRef sender = getSender();
               Gather g = (Gather) message;
-              log.info(toString() + " received Gather from Process " + sender.path().name() + " with ballot " + Integer.toString(g.ballot));
               int senderID = Integer.parseInt(sender.path().name());
               states[senderID-1] = new CoupleState(g.est, g.estBallot);
 
@@ -134,7 +127,7 @@ public class Process extends UntypedAbstractActor {
                   cnt = 0;
               readCounter.put(g.ballot, cnt + 1);
 
-              log.info(toString() + " received Gather from " + Integer.toString(cnt + 1) + " processes" );
+              log.info(toString() + " received Gather from p" + sender.path().name() + " with ballot " + Integer.toString(g.ballot)+ " it has now " + Integer.toString(cnt + 1) + " gathers");
               if (cnt + 1 > N/2) {
                   CoupleState highest = new CoupleState();
                   for (int i = 0; i < N; i++)
@@ -152,7 +145,7 @@ public class Process extends UntypedAbstractActor {
           if (message instanceof Impose) {
               ActorRef sender = getSender();
               Impose i = (Impose) message;
-              log.info(toString() + " received Impose from Process " + sender.path().name() + " with ballot " + Integer.toString(i.ballot) + " and proposal " + Integer.toString(i.proposal));
+              log.info(toString() + " received Impose from p" + sender.path().name() + " with ballot " + Integer.toString(i.ballot) + " and proposal " + Integer.toString(i.proposal));
               if (readBallot > i.ballot || imposeBallot > i.ballot)
                   sender.tell(new Abort(i.ballot), getSelf()); // Send abort to pj
               else {
@@ -163,10 +156,10 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof Ack) {
               Ack a = (Ack) message;
-              log.info(toString() + " received Ack from " + getSender() + " for ballot " + Integer.toString(a.ballot));
               Integer cnt = ackCounter.get(a.ballot);
               if (cnt == null)
                   cnt = 0;
+              log.info(toString() + " received Ack from p" + getSender().path().name() + " for ballot " + Integer.toString(a.ballot) + " it has now " + Integer.toString(cnt+1) + " acks");
               ackCounter.put(a.ballot, cnt + 1);
               if (cnt + 1 > N/2)
                   for (ActorRef p : processes.references)
@@ -177,7 +170,7 @@ public class Process extends UntypedAbstractActor {
               for (ActorRef p : processes.references)
                   p.tell(new Decide(d.value), getSelf()); // Send decide to all
               log.info(toString() + " decided " + Integer.toString(d.value));
-              done = true;
+              getContext().stop(getSelf());
           }
 
           if (message instanceof CrashMsg) {

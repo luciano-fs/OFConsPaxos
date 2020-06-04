@@ -33,28 +33,32 @@ public class Main {
             actor.tell(m, ActorRef.noSender());
         }
 
-	CrashMsg crash = new CrashMsg();
-	
+        CrashMsg crash = new CrashMsg();
+        
         Collections.shuffle(references);
-	for (int i = 0; i < f; i++) {
-	    references.get(i).tell(crash, ActorRef.noSender());
-	}
+        for (int i = 0; i < f; i++) {
+            references.get(i).tell(crash, ActorRef.noSender());
+        }
 
-	LaunchMsg launch = new LaunchMsg();
+        LaunchMsg launch = new LaunchMsg();
 
-	for (ActorRef actor : references) {
-	    actor.tell(launch, ActorRef.noSender());
-	}
+        Thread.sleep(100);
 
-	Thread.sleep(timeout);
-	
-        int leaderNumber = ThreadLocalRandom.current().nextInt(f, references.size());
-	ActorRef leader = references.get(leaderNumber);
-	HoldMsg hold = new HoldMsg();
         for (ActorRef actor : references) {
-	    if (actor != leader) {
-		actor.tell(hold, ActorRef.noSender());
-	    }
-	}
+            actor.tell(launch, ActorRef.noSender());
+        }
+
+        Thread.sleep(timeout);
+        
+        int leaderNumber = ThreadLocalRandom.current().nextInt(f, references.size());
+        ActorRef leader = references.get(leaderNumber);
+        HoldMsg hold = new HoldMsg();
+        for (ActorRef actor : references) {
+            if (actor != leader) {
+                actor.tell(hold, ActorRef.noSender());
+            }
+        }
+        
+
     }
 }
