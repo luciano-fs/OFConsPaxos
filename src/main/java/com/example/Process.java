@@ -39,38 +39,40 @@ public class Process extends UntypedAbstractActor {
         imposeBallot = id - N;
         estimate = -1;
         states = new coupleState[N];
-        faultProne = false;
-        dead = false;
         for (s : states)
             s = new coupleState();
+        faultProne = false;
+        dead = false;
         hold = false;
         ackCounter = new HashMap<Integer, Integer>();
     }
 
     private void propose(int v) {
-        proposal = v;
-        ballot += N;
-        for (coupleState s : states) {
-            s.est = -1;
-            s.estBallot = 0;
+        if (!hold) {
+            proposal = v;
+            ballot += N;
+            for (coupleState s : states) {
+                s.est = -1;
+                s.estBallot = 0;
+            }
+            for (ActorRef p : processes.references)
+                p.tell(new Read(ballot), getSelf());
         }
-        for (ActorRef p : processes.references)
-            p.tell(new Read(ballot), getSelf());
     }
     
     public String toString() {
         return "Process{" + "id=" + id ;
     }
 
-    private keepProposing() {
-	if (Math.random() < 0.5) {
-	    value = 0;
-	    propose(value);
-	}
-	else {
+    private firstProposal() {
+        if (Math.random() < 0.5) {
+            value = 0;
+            propose(value);
+        }
+        else {
             value = 1;
-	    propose(value);
-	}
+            propose(value);
+        }
     }
 
     /**
@@ -84,41 +86,46 @@ public class Process extends UntypedAbstractActor {
     
     public void onReceive(Object message) throws Throwable {
 	
+          if (dead) return;
+
           if (faultProne) {
               if (Math.random() < crashProb) {
                   dead = true;
-                  log.info("p" + self().path().name() + " has died!!!!");
+                  log.info(toString() + " has died!!!!");
+                  return;
               }
           }
 
-          if (dead) return;
 
           if (message instanceof Members) {//save the system's info
               Members m = (Members) message;
               processes = m;
-              log.info("p" + self().path().name() + " received processes info");
+              log.info(toString() + " received processes info");
           }
           if (message instanceof OfconsProposerMsg) {//Broadcast read
-              log.info("p" + self().path().name() + " received OfConsMSG");
+              log.info(toString() + " received OfConsMSG");
               for (ActorRef p : processes.references)
-                  p.tell(new Read(), getSelf());
+                  p.tell(new Read(ballot), getSelf()); // Send READ to all
           }
           if (message instanceof Read) {//Broadcast read
               ActorRef sender = getSender();
               Read r = (Read) message;
+              log.info(toString() + " received Read from " + sender.path().name() + " with ballot " + Integer.toString(r.ballot));
               if (readBallot >= r.ballot || imposeBallot >= r.ballot) 
-                  sender.tell(new Abort(ballot), getSelf());
+                  sender.tell(new Abort(r.ballot), getSelf());
               else {
                   readBallot = r.ballot;
-                  sender.tell(new Gather(ballot, imposeBallot, estimate), getSelf());
+                  sender.tell(new Gather(r.ballot, imposeBallot, estimate), getSelf()); //Send Gather to pj
               }
           }
           if (message instanceof Abort) {
-              //TODO return
+              log.info(toString() + " received Abort from " + getSender());
+              propose(value); //Return abort
           }
           if (message instanceof Gather) {
               ActorRef sender = getSender();
               Gather g = (Gather) message;
+              log.info(toString() + " received Gather from " + sender.path().name() + " with ballot " + Integer.toString(g.ballot));
               int senderID = Integer.parseInt(sender.path().name());
               states[senderID-1] = new coupleState(g.est, g.estBallot);
               int nbStates = 0;
@@ -135,22 +142,24 @@ public class Process extends UntypedAbstractActor {
                   for (coupleState s : states)
                       s = new coupleState();
                   for (ActorRef p : processes.references)
-                      p.tell(new Impose(ballot, proposal), getSelf());
+                      p.tell(new Impose(ballot, proposal), getSelf()); // Send IMPOSE to all
               }
           }
           if (message instanceof Impose) {
               ActorRef sender = getSender();
               Impose i = (Impose) message;
+              log.info(toString() + " received Impose from " + sender.path().name() + " with ballot " + Integer.toString(i.ballot) + " and proposal " + Integer.toString(i.proposal));
               if (readBallot > i.ballot || imposeBallot > i.ballot)
-                  sender.tell(new Abort(i.ballot), getSelf());
+                  sender.tell(new Abort(i.ballot), getSelf()); // Send abort to pj
               else {
                   estimate = i.proposal;
                   imposeBallot = i.ballot;
-                  sender.tell(new Ack(i.ballot), getSelf());
+                  sender.tell(new Ack(i.ballot), getSelf()); // Send ack to pj
               }
           }
           if (message instanceof Ack) {
               Ack a = (Ack) message;
+              log.info(toString() + " received Ack from " + getSender() + " for ballot " + Integeger.toString(a.ballot));
               Integer cnt = ackCounter.get(a.ballot);
               if (cnt == null)
                   ackCounter.put(a.ballot, 1);
@@ -158,23 +167,22 @@ public class Process extends UntypedAbstractActor {
                   ackCounter.put(a.ballot, cnt + 1);
               if (cnt + 1 > N/2)
                   for (ActorRef p : processes.references)
-                      p.tell(new Decide(proposal), getSelf());
+                      p.tell(new Decide(proposal), getSelf()); //Send decide to all
           }
           if (message instanceof Decide) {
               Decide d = (Decide) message;
               for (ActorRef p : processes.references)
-                  p.tell(new Decide(d.value), getSelf());
-              //TODO return
+                  p.tell(new Decide(d.value), getSelf()); // Send decide to all
+              log.info(toString() + " decided " + Integer.toString(d.value));
           }
 
-
           if (message instanceof CrashMsg) {
-              log.info("p" + self().path().name() + " received CrashMsg");
+              log.info(toString() + " received CrashMsg");
               faultProne = true;
           }
           if (message instanceof LaunchMsg) {
-              log.info("p" + self().path().name() + " received LauchMsg");
-	      keepProposing();
+              log.info(toString() + " received LauchMsg");
+	      firstProposal();
           }
 	  if (message instanceof HoldMsg) {
 	      hold = true;
