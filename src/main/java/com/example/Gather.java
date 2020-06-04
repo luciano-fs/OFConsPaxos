@@ -2,8 +2,12 @@ package com.example;
 
 class Gather {
     int ballot;
-    int imposeBallot;
-    int estimate;
+    int estBallot;
+    int est;
 
-    public Read(int ballot) {this.ballot = ballot;}
+    public Gather(int ballot, int estBallot, int est) { 
+        this.ballot = ballot;
+        this.estBallot = estBallot;
+        this.est = est;
+    }
 }

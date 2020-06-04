@@ -1,0 +1,15 @@
+com/example/HoldMsg.class
+com/example/Process.class
+com/example/CrashMsg.class
+com/example/Impose.class
+com/example/Ack.class
+com/example/Abort.class
+com/example/Members.class
+com/example/Decide.class
+com/example/Process$CoupleState.class
+com/example/Read.class
+com/example/LaunchMsg.class
+com/example/OfconsProposerMsg.class
+com/example/Main.class
+com/example/Decision.class
+com/example/Gather.class

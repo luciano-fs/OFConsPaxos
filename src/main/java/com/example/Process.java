@@ -8,7 +8,7 @@ import akka.event.LoggingAdapter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,13 +16,13 @@ public class Process extends UntypedAbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);// Logger attached to actor
     private final int N;//number of processes
     private final int id;//id of current process
-    private final float crashProb = 0.2;//probability of crashing
+    private final double crashProb = 0.2;//probability of crashing
     private int ballot;
     private int proposal;
     private int readBallot;
     private int imposeBallot;
     private int estimate;
-    private coupleState states[];
+    private CoupleState states[];
     private Members processes;//other processes' references
     private boolean faultProne;//if true, the process may die
     private boolean dead;//process has died
@@ -38,9 +38,9 @@ public class Process extends UntypedAbstractActor {
         readBallot = 0;
         imposeBallot = id - N;
         estimate = -1;
-        states = new coupleState[N];
-        for (s : states)
-            s = new coupleState();
+        states = new CoupleState[N];
+        for (CoupleState s : states)
+            s = new CoupleState();
         faultProne = false;
         dead = false;
         hold = false;
@@ -51,7 +51,7 @@ public class Process extends UntypedAbstractActor {
         if (!hold) {
             proposal = v;
             ballot += N;
-            for (coupleState s : states) {
+            for (CoupleState s : states) {
                 s.est = -1;
                 s.estBallot = 0;
             }
@@ -64,7 +64,7 @@ public class Process extends UntypedAbstractActor {
         return "Process{" + "id=" + id ;
     }
 
-    private firstProposal() {
+    private void firstProposal() {
         if (Math.random() < 0.5) {
             value = 0;
             propose(value);
@@ -127,10 +127,10 @@ public class Process extends UntypedAbstractActor {
               Gather g = (Gather) message;
               log.info(toString() + " received Gather from " + sender.path().name() + " with ballot " + Integer.toString(g.ballot));
               int senderID = Integer.parseInt(sender.path().name());
-              states[senderID-1] = new coupleState(g.est, g.estBallot);
+              states[senderID-1] = new CoupleState(g.est, g.estBallot);
               int nbStates = 0;
-              coupleState highest = new coupleState();
-              for (coupleState s : states) {
+              CoupleState highest = new CoupleState();
+              for (CoupleState s : states) {
                   if (s.est != -1)
                       nbStates ++;
                   if (s.estBallot > highest.estBallot)
@@ -139,8 +139,8 @@ public class Process extends UntypedAbstractActor {
               if (nbStates > N/2) {
                   if (highest.estBallot > 0)
                       proposal = highest.est;
-                  for (coupleState s : states)
-                      s = new coupleState();
+                  for (CoupleState s : states)
+                      s = new CoupleState();
                   for (ActorRef p : processes.references)
                       p.tell(new Impose(ballot, proposal), getSelf()); // Send IMPOSE to all
               }
@@ -159,7 +159,7 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof Ack) {
               Ack a = (Ack) message;
-              log.info(toString() + " received Ack from " + getSender() + " for ballot " + Integeger.toString(a.ballot));
+              log.info(toString() + " received Ack from " + getSender() + " for ballot " + Integer.toString(a.ballot));
               Integer cnt = ackCounter.get(a.ballot);
               if (cnt == null)
                   ackCounter.put(a.ballot, 1);
@@ -188,17 +188,17 @@ public class Process extends UntypedAbstractActor {
 	      hold = true;
 	  }
     }
-}
 
-private class coupleState {
-    public int est;
-    public int estBallot;
-    public completeState() {
-        est = -1; 
-        estBallot = 0;
-    }
-    public completeState(int est, int estBallot) {
-        this.est = est; 
-        this.estBallot = estBallot;
+    private class CoupleState {
+        public int est;
+        public int estBallot;
+        public CoupleState() {
+            est = -1; 
+            estBallot = 0;
+        }
+        public CoupleState(int est, int estBallot) {
+            this.est = est; 
+            this.estBallot = estBallot;
+        }
     }
 }
