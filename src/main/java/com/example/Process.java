@@ -48,17 +48,18 @@ public class Process extends UntypedAbstractActor {
     }
 
     private void propose(int v) {
-        if (!hold) {
-            proposal = v;
-            ballot += N;
-            for (CoupleState s : states) {
-                s.est = -1;
-                s.estBallot = 0;
-            }
-            for (ActorRef p : processes.references)
-                p.tell(new Read(ballot), getSelf());
+        if (hold)
+            return;
+        log.info(toString() + " proposes " + Integer.toString(value));
+        proposal = v;
+        ballot += N;
+        for (CoupleState s : states) {
+            s.est = -1;
+            s.estBallot = 0;
         }
-    }
+        for (ActorRef p : processes.references)
+            p.tell(new Read(ballot), getSelf());
+}
     
     public String toString() {
         return "p" + id ;
@@ -112,9 +113,12 @@ public class Process extends UntypedAbstractActor {
               }
           }
           if (message instanceof Abort) {
-	      ActorRef sender = getSender();
-              log.info(toString() + " received Abort from p" + sender.path().name());
-              propose(value); //Return abort
+              ActorRef sender = getSender();
+              Abort a = (Abort) message;
+              if (a.ballot == ballot) {
+                  log.info(toString() + " received Abort from p" + sender.path().name());
+                  propose(value); //Return abort
+              }
           }
           if (message instanceof Gather) {
               ActorRef sender = getSender();
