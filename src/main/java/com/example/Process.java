@@ -28,6 +28,7 @@ public class Process extends UntypedAbstractActor {
     private boolean dead;//process has died
     private boolean hold;
     private HashMap<Integer, Integer> ackCounter;
+    private HashMap<Integer, Integer> readCounter;
     private int value;
 
     public Process(int id, int N) {
@@ -45,6 +46,7 @@ public class Process extends UntypedAbstractActor {
         dead = false;
         hold = false;
         ackCounter = new HashMap<Integer, Integer>();
+        readCounter = new HashMap<Integer, Integer>();
     }
 
     private void propose(int v) {
@@ -129,24 +131,26 @@ public class Process extends UntypedAbstractActor {
               log.info(toString() + " received Gather from Process " + sender.path().name() + " with ballot " + Integer.toString(g.ballot));
               int senderID = Integer.parseInt(sender.path().name());
               states[senderID-1] = new CoupleState(g.est, g.estBallot);
-              int nbStates = 0;
-              CoupleState highest = new CoupleState();
-              for (CoupleState s : states) {
-                  if (s.est != -1)
-                      nbStates ++;
-                  if (s.estBallot > highest.estBallot)
-                      highest = s;
-              }
 
-	      log.info(toString() + " received Gather from " + Integer.toString(nbStates) + " processes" );
-              if (nbStates > N/2) {
+              Integer cnt = readCounter.get(g.ballot);
+              if (cnt == null)
+                  cnt = 0;
+              readCounter.put(g.ballot, cnt + 1);
+
+              log.info(toString() + " received Gather from " + Integer.toString(cnt + 1) + " processes" );
+              if (cnt + 1 > N/2) {
+                  CoupleState highest = new CoupleState();
+                  for (int i = 0; i < N; i++)
+                      if(states[i].estBallot > highest.estBallot)
+                          highest = states[i];
                   if (highest.estBallot > 0)
                       proposal = highest.est;
-                  for (CoupleState s : states)
-                      s = new CoupleState();
+                  for (int i = 0; i < N; i++)
+                      states[i] = new CoupleState();
                   for (ActorRef p : processes.references)
                       p.tell(new Impose(ballot, proposal), getSelf()); // Send IMPOSE to all
               }
+
           }
           if (message instanceof Impose) {
               ActorRef sender = getSender();
@@ -165,9 +169,8 @@ public class Process extends UntypedAbstractActor {
               log.info(toString() + " received Ack from " + getSender() + " for ballot " + Integer.toString(a.ballot));
               Integer cnt = ackCounter.get(a.ballot);
               if (cnt == null)
-                  ackCounter.put(a.ballot, 1);
-              else
-                  ackCounter.put(a.ballot, cnt + 1);
+                  cnt = 0;
+              ackCounter.put(a.ballot, cnt + 1);
               if (cnt + 1 > N/2)
                   for (ActorRef p : processes.references)
                       p.tell(new Decide(proposal), getSelf()); //Send decide to all
