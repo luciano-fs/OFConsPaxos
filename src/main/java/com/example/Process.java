@@ -50,11 +50,11 @@ public class Process extends UntypedAbstractActor {
     }
 
     private void propose(int v) {
+        ballot += N; //Moved it forward so aborted holding messages ignore further messages
         if (hold)
             return;
         log.info(toString() + " proposes " + Integer.toString(value));
         proposal = v;
-        ballot += N;
         for (CoupleState s : states) {
             s.est = -1;
             s.estBallot = 0;
