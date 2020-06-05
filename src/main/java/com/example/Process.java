@@ -53,7 +53,7 @@ public class Process extends UntypedAbstractActor {
         ballot += N; //Moved it forward so aborted holding messages ignore further messages
         if (hold)
             return;
-        log.info(toString() + " proposes " + Integer.toString(value));
+        log.info(toString() + " proposes " + Integer.toString(value) + " with ballot " + Integer.toString(ballot));
         proposal = v;
         for (CoupleState s : states) {
             s.est = -1;
