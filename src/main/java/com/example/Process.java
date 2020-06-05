@@ -27,8 +27,8 @@ public class Process extends UntypedAbstractActor {
     private Members processes;//other processes' references
     private boolean faultProne;//if true, the process may die
     private boolean hold;
-    private HashMap<Integer, Integer> ackCounter;
-    private HashMap<Integer, Integer> readCounter;
+    private int ackCounter;
+    private int readCounter;
     private int value;
 
     public Process(int id, int N, IsRunning alive) {
@@ -44,8 +44,8 @@ public class Process extends UntypedAbstractActor {
             states[i] = new CoupleState();
         faultProne = false;
         hold = false;
-        ackCounter = new HashMap<Integer, Integer>();
-        readCounter = new HashMap<Integer, Integer>();
+        ackCounter = 0;
+        readCounter = 0;
 	this.alive = alive;
     }
 
@@ -92,7 +92,7 @@ public class Process extends UntypedAbstractActor {
           if (faultProne) {
               if (Math.random() < crashProb) {
                   log.info(toString() + " has died!!!!");
-		  alive.set(false);
+                  alive.set(false);
                   getContext().stop(getSelf());
                   return;
               }
@@ -118,24 +118,25 @@ public class Process extends UntypedAbstractActor {
           if (message instanceof Abort) {
               ActorRef sender = getSender();
               Abort a = (Abort) message;
-              if (a.ballot == ballot) {
-                  log.info(toString() + " received Abort from p" + sender.path().name());
-                  propose(value); //Return abort
-              }
+              if (a.ballot != ballot)
+                  return;
+              log.info(toString() + " received Abort from p" + sender.path().name());
+              ackCounter = 0;
+              readCounter = 0;
+              propose(value); //Return abort
           }
           if (message instanceof Gather) {
               ActorRef sender = getSender();
               Gather g = (Gather) message;
+              if (g.ballot != ballot) 
+                  return;
               int senderID = Integer.parseInt(sender.path().name());
               states[senderID-1] = new CoupleState(g.est, g.estBallot);
 
-              Integer cnt = readCounter.get(g.ballot);
-              if (cnt == null)
-                  cnt = 0;
-              readCounter.put(g.ballot, cnt + 1);
+              readCounter++;
 
-              log.info(toString() + " received Gather from p" + sender.path().name() + " with ballot " + Integer.toString(g.ballot)+ " it has now " + Integer.toString(cnt + 1) + " gathers");
-              if (cnt + 1 > N/2) {
+              log.info(toString() + " received Gather from p" + sender.path().name() + " with ballot " + Integer.toString(g.ballot)+ " it has now " + Integer.toString(readCounter) + " gathers");
+              if (readCounter > N/2) {
                   CoupleState highest = new CoupleState();
                   for (int i = 0; i < N; i++)
                       if(states[i].estBallot > highest.estBallot)
@@ -163,12 +164,11 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof Ack) {
               Ack a = (Ack) message;
-              Integer cnt = ackCounter.get(a.ballot);
-              if (cnt == null)
-                  cnt = 0;
-              log.info(toString() + " received Ack from p" + getSender().path().name() + " for ballot " + Integer.toString(a.ballot) + " it has now " + Integer.toString(cnt+1) + " acks");
-              ackCounter.put(a.ballot, cnt + 1);
-              if (cnt + 1 > N/2)
+              if(a.ballot != ballot)
+                  return;
+              ackCounter++;
+              log.info(toString() + " received Ack from p" + getSender().path().name() + " for ballot " + Integer.toString(a.ballot) + " it has now " + Integer.toString(ackCounter) + " acks");
+              if (ackCounter > N/2)
                   for (ActorRef p : processes.references)
                       p.tell(new Decide(proposal), getSelf()); //Send decide to all
           }
@@ -187,12 +187,12 @@ public class Process extends UntypedAbstractActor {
           }
           if (message instanceof LaunchMsg) {
               log.info(toString() + " received LauchMsg");
-	      firstProposal();
+              firstProposal();
           }
-	  if (message instanceof HoldMsg) {
-	      log.info(toString() + " received HoldMsg");
-	      hold = true;
-	  }
+          if (message instanceof HoldMsg) {
+              log.info(toString() + " received HoldMsg");
+              hold = true;
+          }
     }
 
     private class CoupleState {
