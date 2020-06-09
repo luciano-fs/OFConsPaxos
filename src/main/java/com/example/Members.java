@@ -9,9 +9,13 @@ public class Members {
             public final String data;
 
     public Members(ArrayList<ActorRef> references) {
-        this.references = references;
+	this.references = new ArrayList<ActorRef>();
+	for (ActorRef actor : references) {
+	    this.references.add(actor);
+	}
+	
         String s="[ ";
-        for (ActorRef a : references){
+        for (ActorRef a : this.references){
             s+=a.path().name()+" ";
         }
         s+="]";    
