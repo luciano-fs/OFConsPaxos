@@ -30,6 +30,7 @@ public class Process extends UntypedAbstractActor {
     private int ackCounter;
     private int readCounter;
     private int value;
+    private boolean decided;
 
     public Process(int id, int N, IsRunning alive) {
         this.N = N;
@@ -46,7 +47,8 @@ public class Process extends UntypedAbstractActor {
         hold = false;
         ackCounter = 0;
         readCounter = 0;
-	this.alive = alive;
+        decided = false;
+        this.alive = alive;
     }
 
     private void propose(int v) {
@@ -61,7 +63,7 @@ public class Process extends UntypedAbstractActor {
         }
         for (ActorRef p : processes.references)
             p.tell(new Read(ballot), getSelf());
-}
+    }
     
     public String toString() {
         return "p" + id ;
@@ -88,12 +90,15 @@ public class Process extends UntypedAbstractActor {
     }
     
     public void onReceive(Object message) throws Throwable {
-	
+          if (decided)
+              return;
+
           if (faultProne) {
               if (Math.random() < crashProb) {
                   log.info(toString() + " has died!!!!");
                   alive.set(false);
-                  getContext().stop(getSelf());
+                  //getContext().stop(getSelf());
+                  decided=true;
                   return;
               }
           }
@@ -178,7 +183,8 @@ public class Process extends UntypedAbstractActor {
                   p.tell(new Decide(d.value), getSelf()); // Send decide to all
               log.info(toString() + " decided " + Integer.toString(d.value));
               alive.set(false);
-              getContext().stop(getSelf());
+              decided=true;
+              //getContext().stop(getSelf());
           }
 
           if (message instanceof CrashMsg) {
