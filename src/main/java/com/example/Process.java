@@ -30,7 +30,6 @@ public class Process extends UntypedAbstractActor {
     private int ackCounter;
     private int readCounter;
     private int value;
-    private boolean decided;
 
     public Process(int id, int N, IsRunning alive) {
         this.N = N;
@@ -47,7 +46,6 @@ public class Process extends UntypedAbstractActor {
         hold = false;
         ackCounter = 0;
         readCounter = 0;
-        decided = false;
         this.alive = alive;
     }
 
@@ -90,15 +88,11 @@ public class Process extends UntypedAbstractActor {
     }
     
     public void onReceive(Object message) throws Throwable {
-          if (decided)
-              return;
-
           if (faultProne) {
               if (Math.random() < crashProb) {
                   log.info(toString() + " has died!!!!");
                   alive.set(false);
-                  //getContext().stop(getSelf());
-                  decided=true;
+                  getContext().stop(getSelf());
                   return;
               }
           }
@@ -183,8 +177,7 @@ public class Process extends UntypedAbstractActor {
                   p.tell(new Decide(d.value), getSelf()); // Send decide to all
               log.info(toString() + " decided " + Integer.toString(d.value));
               alive.set(false);
-              decided=true;
-              //getContext().stop(getSelf());
+              getContext().stop(getSelf());
           }
 
           if (message instanceof CrashMsg) {
